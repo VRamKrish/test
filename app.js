@@ -1,69 +1,20 @@
-const { MongoClient } = require("mongodb");
-const uri = require("./atlas_url");
-// const uri =
-//   "mongodb+srv://myAtlasDBUser:myatlas-001@myatlasclusteredu.jrqai.mongodb.net";
-const client = new MongoClient(uri);
-// const client = new MongoClient(uri);
-// const dbName = "myAtlasDBUser";
-const connecToDatebase = async () => {
-  try {
-    await client.connect();
+const express = require("express");
+const app = express();
 
-    console.log("Connected to the database");
-  } catch (error) {
-    console.error("Error connecting to the database", error);
-  }
-};
+// app.listen(8080, () => {
+//   console.log("Server is running on port 8080");
+// });
+// const express = require('express');
+// const app = express();
 
-async function insertData(collection) {
-  // const insertResult = await collection.insertOne({
-  //   first_name: "vamsi",
-  //   last_name: "ram",
-  //   user_name: "vamsi_ram_1",
-  //   password: "varakri212",
-  // });
-  const insertResult = await collection.insertMany([
-    {
-      first_name: "vamsi",
-      last_name: "ram",
-      user_name: "vamsi_ram_1",
-      password: "varakri212", // encrypted password
-    },
-    {
-      first_name: "vamsi",
-      last_name: "ram",
-      user_name: "vamsi_ram_2",
-      password: "varakri212", // encrypted password
-    },
-    {
-      first_name: "vamsi",
-      last_name: "ram",
-      user_name: "vamsi_ram_3",
-      password: "varakri212", // encrypted password
-    },
-  ]);
+// Middleware to parse JSON data
+app.use(express.json());
 
-  console.log("Insert result:", insertResult);
-}
-const main = async () => {
-  const dbo = client.db("ck");
-  const collection = dbo.collection("users_data");
-  try {
-    await connecToDatebase();
-    //---------------------****************************------------------------
-    //     const dbname = "bank"
-    // const collection_name = "accounts"
+// Middleware to parse URL-encoded data
+app.use(express.urlencoded({ extended: true }));
+// app.use(require("./Routes/routes"));
+// Import and use the router
+const userRouter = require("./Routes/routes");
+app.use("/users", userRouter);
 
-    // const accountsCollection = client.db(dbname).collection(collection_name)
-    //---------------------****************************------------------------
-
-    const dbo = client.db("ck");
-    const collection = dbo.collection("users_data");
-    // await insertData(collection);
-  } catch (error) {
-    console.error("Error in main", error);
-  } finally {
-    await client.close();
-  }
-};
-main();
+app.listen(8080, () => console.log("Server is running on port 3000"));
