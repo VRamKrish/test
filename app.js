@@ -15,6 +15,6 @@ app.use(express.urlencoded({ extended: true }));
 // app.use(require("./Routes/routes"));
 // Import and use the router
 const userRouter = require("./Routes/routes");
-app.use("/users", userRouter);
+app.use("/", userRouter);
 
 app.listen(8080, () => console.log("Server is running on port 3000"));
