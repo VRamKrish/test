@@ -37,4 +37,4 @@ db.once('open', async () => {
 const userRouter = require('./Routes/routes');
 app.use('/', userRouter);
 
-app.listen(8080, () => console.log('Server is running on port 3000'));
+app.listen(8080, () => console.log('Server is running on port 8080'));

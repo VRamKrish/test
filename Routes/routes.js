@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 // const { MongoClient } = require("mongodb");
 const userModel = require('../models/userModel');
+const jwtSchema = require('../models/userModel');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 // const client = new MongoClient(uri);
@@ -17,24 +18,33 @@ const bcrypt = require('bcryptjs');
 //   }
 // };
 
-router.get('/users', async (req, res) => {
-  try {
-    // await connecToDatebase();
-    // const dbo = client.db("ck");
-    // const collection = dbo.collection("users_data");
-    // const result = await collection.find({}).toArray();
-    // console.log(result);
-    const users = await userModel.find();
-    console.log(users);
+// router.get('/users', async (req, res) => {
+//   try {
+//     // await connecToDatebase();
+//     // const dbo = client.db("ck");
+//     // const collection = dbo.collection("users_data");
+//     // const result = await collection.find({}).toArray();
+//     // console.log(result);
+//     const users = await userModel.find();
+//     console.log(users);
 
-    res.status(200).send(users);
-    // res.send(result);
-  } catch (error) {
-    console.error('Error getting data', error);
-    res.send('Error getting data');
-  }
-});
+//     res.status(200).send(users);
+//     // res.send(result);
+//   } catch (error) {
+//     console.error('Error getting data', error);
+//     res.send('Error getting data');
+//   }
+// });
+// Generate Access and Refresh Tokens
+const generateAccessToken = (user) => {
+  return jwt.sign({ email: user.email }, process.env.ACCESS_TOKEN_SECRET, {
+    expiresIn: '15m',
+  });
+};
 
+const generateRefreshToken = (user) => {
+  return jwt.sign({ email: user.email }, process.env.REFRESH_TOKEN_SECRET);
+};
 router.post('/register', async (req, res) => {
   try {
     // await connecToDatebase();
@@ -42,15 +52,14 @@ router.post('/register', async (req, res) => {
     console.log(req.body);
 
     // const collection = dbo.collection('users_data');
-    const user = new userModel(
-      // {
-      // first_name: 'Jane',
-      // last_name: 'Doe',
-      // user_name: 'Jane_doe_1',
-      // password: 'Jane_Doe12',
-      req.body
-      // }
-    );
+    const userExists = await userModel.findOne({
+      userName: req.body.userName,
+    });
+    if (userExists) {
+      return res.status(400).json({ error: 'User already registered!' });
+    }
+
+    const user = new userModel(req.body);
     console.log(user);
     await user.validate();
     // if (!user) return res.status(400).send({ error: 'Invalid data' });
@@ -84,17 +93,75 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const user = await userModel.findOne({
-      user_name: req.body.user_name,
+      userName: req.body.userName,
     });
     console.log(user);
 
     if (!user) return res.status(404).send({ error: 'User not found' });
-    res.status(200).send(user);
+
+    const isMatch = await bcrypt.compare(req.body.password, user.password);
+    if (!isMatch) return res.status(401).send({ error: 'Invalid credentials' });
+
+    console.log('user', user);
+    // user.tokens = user.tokens.concat({ token });
+    // Generate tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    //  await user.save();
+
+    res.status(200).json({
+      accessToken,
+      refreshToken,
+      user: {
+        userName: user.userName,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      },
+    });
+
+    // res.status(200).send(user);
   } catch (error) {
     console.error('Error logging in', error);
     res.send('Error logging in');
   }
 });
+
+// Token Validation Middleware
+// const authenticateToken = (req, res, next) => {
+//   const authHeader = req.headers['authorization'];
+//   const token = authHeader && authHeader.split(' ')[1];
+
+//   if (!token) return res.status(401).json({ error: 'Access denied' });
+
+//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+//     if (err) return res.status(403).json({ error: 'Invalid or expired token' });
+//     req.user = user;
+//     next();
+//   });
+// };
+
+// Validate Refresh Token Endpoint
+// app.post('/token', async (req, res) => {
+//   const { token } = req.body;
+//   if (!token) return res.status(401).json({ error: 'Refresh token required' });
+
+//   try {
+//     const user = await User.findOne({ refreshToken: token });
+//     if (!user) return res.status(403).json({ error: 'Invalid refresh token' });
+
+//     // Verify refresh token
+//     jwt.verify(token, process.env.REFRESH_TOKEN_SECRET, (err) => {
+//       if (err) return res.status(403).json({ error: 'Invalid refresh token' });
+
+//       // Generate a new access token
+//       const accessToken = generateAccessToken(user);
+//       res.status(200).json({ accessToken });
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 // router.post('/login', async (req, res) => {
 //   try {
